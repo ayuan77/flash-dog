@@ -40,8 +40,6 @@ public class ProjectService {
     private static Logger logger = LoggerFactory.getLogger(ProjectService.class);
 
     @Resource
-    private AlertService alertService;
-    @Resource
     private MongoTemplate mongoTemplate;
     private String collectionName;
     @Resource

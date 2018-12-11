@@ -86,7 +86,6 @@ public class EmailService extends AbstractAlertNotifier implements AlertListener
 
     }
 
-
     public void setEnable(boolean enable) {
         this.enable = enable;
     }

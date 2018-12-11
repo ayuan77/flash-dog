@@ -28,6 +28,9 @@ import org.springframework.data.mongodb.core.query.Order;
 import org.springframework.data.mongodb.core.query.Query;
 
 import javax.annotation.Resource;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
@@ -117,8 +120,15 @@ public class AlertService {
     }
 
     protected boolean isNeedNotify(Alert alert) {
-        if (alert == null)
-            return false;
+        if (alert == null) return false;
+        MetricDog metricDog = alert.getMetricDog();
+        if(metricDog.getExcludeTimeMode()){
+            SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss");
+            String currTime = df.format(new Date());
+            if((currTime.compareTo(metricDog.getStartTime()) >= 0)||(currTime.compareTo(metricDog.getEndTime()) <= 0)){
+                return false;
+            }
+        }
         String key = alert.getProjectName() + "_" + alert.getTitle();
 
         AtomicInteger init = new AtomicInteger(0);
