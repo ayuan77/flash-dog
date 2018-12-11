@@ -1,20 +1,20 @@
 package org.log4mongo.contrib;
 
 import com.sun.management.OperatingSystemMXBean;
-import org.apache.log4j.Logger;
-import sun.management.ManagementFactory;
+import java.lang.management.ManagementFactory;
 
 import java.lang.management.RuntimeMXBean;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 /**
  * author: Hill.Hu
  */
 public class JvmMonitor {
 	private static JvmMonitor uniqueInstance = null;
-    private static Logger logger = Logger.getLogger(JvmMonitor.class);
+    private static Logger logger = Logger.getLogger(JvmMonitor.class.getName());
     private long lastProcessCpuTime = 0;
     private long lastUptime = 0;
     public static final int DEFAULT_REFRESH_SECONDS = 60;
@@ -40,7 +40,6 @@ public class JvmMonitor {
         logger.info("jvm monitor start  ...");
         ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
         executorService.scheduleAtFixedRate(new Runnable() {
-            @Override
             public void run() {
                 record();
             }

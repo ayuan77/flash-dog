@@ -32,11 +32,14 @@ public class LogFileTailerListener extends TailerListenerAdapter {
     private String dateFormat = "";
     @Value("${input.fields}")
     private String fields;
-    private Pattern pattern;
+
     @Value("${mongo.uri}")
     private String mongoURI;
     @Value("${mongo.collection}")
     private String collectionName = "log_file";
+
+    @Value("${log.Encode}")
+    private String logEncode;
 
     private Mongo mongo = null;
     private DBCollection collection = null;
@@ -46,16 +49,21 @@ public class LogFileTailerListener extends TailerListenerAdapter {
     /**
      * 后台写日志的线程个数
      */
-    private int threadCount = 2;
+    private int threadCount = 4;
     private LinkedBlockingQueue<Runnable> workQueue;
     private int maxWorkSize = 1000;
     private static ThreadPoolExecutor executorService;
 
     @Override
     public void handle(String line) {
-        try {
+        if (logger.isDebugEnabled()) {
+            logger.debug("json= " + line);
+        }
+    }
 
-            final DBObject bson = convert(line);
+    public void handle(String line, Pattern pattern, String sDeteFormat, String sFields) {
+        try {
+            final DBObject bson = convert(line, pattern, sDeteFormat, sFields);
             if (logger.isDebugEnabled()) {
                 logger.debug("json= " + bson.toString());
             }
@@ -106,30 +114,23 @@ public class LogFileTailerListener extends TailerListenerAdapter {
 
     public void setPatternTxt(String patternTxt) {
         this.patternTxt = patternTxt;
-        try {
-            pattern = Pattern.compile(patternTxt);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("patternTxt err:" + e.getMessage());
-        }
-
     }
 
     public void setFields(String fields) {
         this.fields = fields;
     }
 
-    public DBObject convert(String line) {
+    public DBObject convert(String line, Pattern pattern, String sDeteFormat, String sFields) {
         Matcher matcher = pattern.matcher(line);
         DBObject bson = new BasicDBObject();
-        String[] fields = this.fields.split(" ");
+        String[] fields = sFields.split(" ");
         if (matcher.matches()) {
             if (matcher.groupCount() >= fields.length) {
                 for (int i = 1; i <= matcher.groupCount(); i++) {
                     String field = fields[i - 1];
                     String group = matcher.group(i);
                     if (field.equalsIgnoreCase("timestamp")) {
-
-                        bson.put(field, toDate(group));
+                        bson.put(field, toDate(group, sDeteFormat));
                     } else {
                         bson.put(field, group);
                     }
@@ -143,17 +144,16 @@ public class LogFileTailerListener extends TailerListenerAdapter {
             logger.error("解析失败:" + line);
         }
 
-        //由于timestamp被转成了string，所以重新写入时间
         bson.put("timestamp", new Date());
         return bson;
     }
 
-    private Date toDate(String group) {
+    private Date toDate(String group, String sDeteFormat) {
         try {
-            SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
+            SimpleDateFormat sdf = new SimpleDateFormat(sDeteFormat);
             return sdf.parse(group);
         } catch (ParseException e) {
-            logger.error("date convert fail input=[{}] ,format=[{}]", group, dateFormat);
+            logger.error("date convert fail input=[{}] ,format=[{}]", group, sDeteFormat);
         }
         return new Date();
     }
@@ -168,9 +168,17 @@ public class LogFileTailerListener extends TailerListenerAdapter {
         super.init(tailer);
     }
 
+    public void init(UnTailer tailer) {
+
+    }
+
     @Override
     public void handle(Exception ex) {
         logger.error("", ex);
+    }
+
+    public String getLogEncode() {
+        return logEncode;
     }
 
     public void setFileName(String fileName) {
@@ -179,6 +187,18 @@ public class LogFileTailerListener extends TailerListenerAdapter {
 
     public String getFileName() {
         return fileName;
+    }
+
+    public String getPatternTxt() {
+        return patternTxt;
+    }
+
+    public String getDateFormat() {
+        return dateFormat;
+    }
+
+    public String getFields() {
+        return fields;
     }
 
     public void testDog() {
